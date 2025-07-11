@@ -18,7 +18,7 @@ func NewConnection(cfg config.DatabaseConfig) (*DB, error) {
 	// Crea la conneción de la base de datos
 	db, err := sql.Open("mysql", cfg.GetDSN())
 	if err != nil {
-		return nil, fmt.Errorf("failed to open database: %w", err)
+		return nil, fmt.Errorf("error al abrir la conexión con la base de datos: %w", err)
 	}
 
 	// Configurar pool de conexiones
@@ -28,7 +28,7 @@ func NewConnection(cfg config.DatabaseConfig) (*DB, error) {
 
 	// Verificar conexión
 	if err := db.Ping(); err != nil {
-		return nil, fmt.Errorf("failed to ping database: %w", err)
+		return nil, fmt.Errorf("error al conprobar Ping con la base de datos: %w", err)
 	}
 
 	return &DB{db}, nil
