@@ -27,6 +27,9 @@ type UpdateUserRequest struct {
 	Age   int    `json:"age"`
 }
 
+// ErrInvalidEmailFormat es retornado cuando el formato de un email es inválido.
+var ErrInvalidEmailFormat = errors.New("el email no es válido")
+
 // Validaciones de negocio
 func (u *User) Validate() error {
 	if u.Name == "" {
@@ -35,8 +38,8 @@ func (u *User) Validate() error {
 	if u.Email == "" {
 		return errors.New("el email es requerido")
 	}
-	if !isValidEmail(u.Email) {
-		return errors.New("el email no es válido")
+	if !IsValidEmail(u.Email) {
+		return ErrInvalidEmailFormat
 	}
 	if u.Age < 0 || u.Age > 150 {
 		return errors.New("la edad debe estar entre 0 y 150")
@@ -44,7 +47,7 @@ func (u *User) Validate() error {
 	return nil
 }
 
-func isValidEmail(email string) bool {
+func IsValidEmail(email string) bool {
 	// Expresión regular simple para validar el formato del email. ejemplo: mail@mail.com
 	pattern := `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`
 	regex := regexp.MustCompile(pattern)
