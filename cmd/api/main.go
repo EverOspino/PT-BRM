@@ -11,12 +11,7 @@ import (
 
 	"pt-brm/internal/config"
 	"pt-brm/internal/database"
-	"pt-brm/internal/handlers"
-	"pt-brm/internal/repositories"
-	"pt-brm/internal/services"
-
-	"github.com/gorilla/mux"
-	"github.com/rs/cors"
+	"pt-brm/internal/routes"
 )
 
 func main() {
@@ -40,42 +35,15 @@ func main() {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
 
-	// Crear el repositorio de usuarios
-	userRepo := repositories.NewMySQLUserRepository(db)
-
-	// Crear el servicio de usuarios
-	userService := services.NewUserService(userRepo)
-
-	// Crear el manejador de usuarios
-	userHandler := handlers.NewUserHandler(userService)
-
-	// Configurar el router
-	router := mux.NewRouter()
-
-	// Health check
-	router.HandleFunc("/health", healthCheck(db)).Methods("GET")
-
-	// Definir las rutas para el manejador de usuarios
-	api := router.PathPrefix("/api/v1").Subrouter()
-	api.HandleFunc("/users", userHandler.CreateUser).Methods("POST")
-	api.HandleFunc("/users", userHandler.GetAllUsers).Methods("GET")
-	api.HandleFunc("/users/{id}", userHandler.GetUserByID).Methods("GET")
-	api.HandleFunc("/users/{id}", userHandler.UpdateUser).Methods("PUT")
-	api.HandleFunc("/users/{id}", userHandler.DeleteUser).Methods("DELETE")
-
-	// Configurar CORS
-	c := cors.New(cors.Options{
-		AllowedOrigins: []string{"*"},
-		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders: []string{"*"},
-	})
-
-	corsHandler := c.Handler(router)
+	// Crear el router
+	router := routes.NewRouter(db)
+	// Configurar las rutas
+	httpHandler := router.SetupRoutes()
 
 	// Iniciar el servidor HTTP
 	srv := &http.Server{
 		Addr:         ":" + cfg.Server.Port,
-		Handler:      corsHandler,
+		Handler:      httpHandler,
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,
@@ -104,18 +72,4 @@ func main() {
 	}
 
 	log.Println("Servidor apagado correctamente")
-}
-
-// Health check endpoint
-func healthCheck(db *database.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if err := db.Ping(); err != nil {
-			http.Error(w, "Database connection failed", http.StatusServiceUnavailable)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status": "healthy", "database": "connected"}`))
-	}
 }
