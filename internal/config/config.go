@@ -1,8 +1,10 @@
 package config
 
 import (
+	"bufio"
 	"fmt"
 	"os"
+	"strings"
 )
 
 type Config struct {
@@ -25,7 +27,13 @@ type DatabaseConfig struct {
 }
 
 // Carga la configuración desde las variables de entorno y devuelve una instancia de Config.
-func Load() (*Config, error) {
+func LoadConfig() (*Config, error) {
+	// Cargar variables desde archivo .env si existe
+	if err := loadEnvFile(".env"); err != nil {
+		// Si no existe .env, solo log warning pero continúa
+		fmt.Printf("Warning: .env file not found, using environment variables or defaults\n")
+	}
+
 	return &Config{
 		Server: ServerConfig{
 			Port: getEnv("SERVER_PORT", "8080"),
@@ -51,6 +59,41 @@ func (c *DatabaseConfig) GetDSN() string {
 		c.Port,
 		c.Database,
 	)
+}
+
+// loadEnvFile carga variables de entorno desde un archivo .env
+func loadEnvFile(filename string) error {
+	file, err := os.Open(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+
+		// Saltar líneas vacías y comentarios
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		// Dividir en clave=valor
+		parts := strings.SplitN(line, "=", 2)
+		if len(parts) != 2 {
+			continue
+		}
+
+		key := strings.TrimSpace(parts[0])
+		value := strings.TrimSpace(parts[1])
+
+		// Solo establecer si no existe ya en el entorno
+		if os.Getenv(key) == "" {
+			os.Setenv(key, value)
+		}
+	}
+
+	return scanner.Err()
 }
 
 // Obtiene el valor de una variable de entorno o devuelve un valor por defecto si no está definida.

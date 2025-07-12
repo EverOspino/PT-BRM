@@ -28,8 +28,29 @@ func NewConnection(cfg config.DatabaseConfig) (*DB, error) {
 
 	// Verificar conexión
 	if err := db.Ping(); err != nil {
-		return nil, fmt.Errorf("error al conprobar Ping con la base de datos: %w", err)
+		return nil, fmt.Errorf("error al comprobar Ping con la base de datos: %w", err)
 	}
 
 	return &DB{db}, nil
+}
+
+func (db *DB) Migrate() error {
+	query := `
+	CREATE TABLE IF NOT EXISTS users (
+		id INT AUTO_INCREMENT PRIMARY KEY,
+		name VARCHAR(80) NOT NULL,
+		email VARCHAR(100) NOT NULL UNIQUE,
+		age INT NOT NULL,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+		INDEX idx_email (email),
+		INDEX idx_created_at (created_at)
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+	`
+
+	if _, err := db.Exec(query); err != nil {
+		return fmt.Errorf("no se pudo crear la tabla users: %w", err)
+	}
+
+	return nil
 }
